@@ -4,7 +4,49 @@
 # Carla L. Mejias-Rivera & Travis A. Courtney
 # carla.mejias@upr.edu
 
-####LOAD PACKAGES####
+
+####F(x): Process Extracted Pixels####
+process_pixEx <- function(file_path) {
+  
+  # Loads necessary packages
+  library(readr)
+  library(dplyr)
+  library(tidyr)
+  
+  # Defines the flags to filter
+  Flags_NN <- c("WQSF_lsb_LAND", 
+                "WQSF_lsb_CLOUD", 
+                "WQSF_lsb_CLOUD_AMBIGUOUS",
+                "WQSF_lsb_CLOUD_MARGIN",
+                "WQSF_lsb_INVALID",
+                "WQSF_lsb_COSMETIC", 
+                "WQSF_lsb_SATURATED", 
+                "WQSF_lsb_SUSPECT",
+                "WQSF_lsb_HISOLZEN", 
+                "WQSF_lsb_HIGHGLINT",
+                "WQSF_lsb_OCNN_FAIL", 
+                "WQSF_lsb_MEGLINT",
+                "WQSF_lsb_COASTLINE",
+                "WQSF_lsb_WHITECAPS",
+                "WQSF_lsb_ADJAC")
+  
+  # Reads and process the Extracted Pixel file
+  processed_data <- read_csv(file_path, col_types = cols(`Date` = col_date(format = "%m/%d/%Y"))) %>% 
+    mutate(ALL_FLAGS = rowSums((.[, Flags_NN]), na.rm = TRUE)) %>% 
+    filter(ALL_FLAGS < 1) %>% 
+    rename(Site = "Name",
+           Kd490 = "KD490_M07") %>% 
+    group_by(Date, Site) %>% 
+    subset(select = c(Site, Latitude, Longitude, Date, CHL_NN, CHL_NN_err, Kd490, ALL_FLAGS)) %>% 
+    dplyr::mutate(
+      Optical_Depth = 1 / Kd490) %>%
+    replace_with_na_all(condition = ~.x == -999)
+  
+  return(processed_data)
+}
+
+
+####Load Packages to be used in the Data Analysis####
 library(tidyverse)
 library(dplyr)
 library(naniar)
@@ -30,16 +72,14 @@ library(patchwork)
 library(ggforce)
 
 
-#### IMPORT & MODIFY DATA #### "PRCRMP_Chla.xlsx"
+####Import & Modify Raw Data #### 
 ######In Situ Results######
-
 InSituData=read_xlsx("PRCRMP_Chla.xlsx") %>% 
   rename(Chla = "Chl_a_µg_L",
          Site = "Site_Name",
          Quarter = "Sampling_Cycle") %>% 
   filter(Chla<15)
 InSituData$Date <- as.Date(InSituData$Date, format = "%m/%d/%Y")
-
 
 InSituData_Virtual=read_xlsx("PRCRMP_Chla.xlsx") %>%
   rename(Chla = "Chl_a_µg_L",
@@ -55,63 +95,19 @@ InSituData_Virtual=read_xlsx("PRCRMP_Chla.xlsx") %>%
 InSituData_Virtual$Date <- as.Date(InSituData_Virtual$Date, format = "%m/%d/%Y")
 
 
-######Extracted Pixels Sentinel_3 OLCI L2#####
-
-#Filter Flags#
-Flags_NN=c("WQSF_lsb_LAND", 
-           "WQSF_lsb_CLOUD", 
-           "WQSF_lsb_CLOUD_AMBIGUOUS",
-           "WQSF_lsb_CLOUD_MARGIN",
-           "WQSF_lsb_INVALID",
-           "WQSF_lsb_COSMETIC", 
-           "WQSF_lsb_SATURATED", 
-           "WQSF_lsb_SUSPECT",
-           "WQSF_lsb_HISOLZEN", 
-           "WQSF_lsb_HIGHGLINT",
-           "WQSF_lsb_OCNN_FAIL", 
-           "WQSF_lsb_MEGLINT",
-           "WQSF_lsb_COASTLINE",
-           "WQSF_lsb_WHITECAPS",
-           "WQSF_lsb_ADJAC")
-
-PRCRMP_Flags=read_csv("pixEx_PRCRMP_OL_2_WFR_measurements.csv", col_types = cols(`Date` = col_date(format = "%m/%d/%Y"))) %>% 
-  mutate(ALL_FLAGS = rowSums((.[,Flags_NN]), na.rm = TRUE)) %>% 
-  filter(ALL_FLAGS<1) %>% 
-  rename(Site = "Name",
-         Kd490 = "KD490_M07") %>% 
-  group_by(Date, Site) %>% 
-  subset(select= c(Site, Latitude, Longitude, Date, CHL_NN, CHL_NN_err, Kd490, ALL_FLAGS)) %>% 
-  dplyr::mutate(
-    "Optical_Depth" = 1/Kd490) %>%
-  replace_with_na_all(condition=~.x==-999)
-  
-
-Virtual_Flags=read_csv("pixEx_Virtual_OL_2_WFR_measurements.csv", col_types = cols(`Date` = col_date(format = "%m/%d/%Y"))) %>% 
-  mutate(ALL_FLAGS = rowSums((.[,Flags_NN]), na.rm = TRUE)) %>% 
-  filter(ALL_FLAGS<1) %>% 
-  rename(Site = "Name",
-         Kd490 = "KD490_M07") %>% 
-  group_by(Date, Site) %>% 
-  subset(select= c(Site, Latitude, Longitude, Date, CHL_NN, CHL_NN_err, Kd490, ALL_FLAGS)) %>% 
-  dplyr::mutate(
-    "Optical_Depth" = 1/Kd490) %>%
-  replace_with_na_all(condition=~.x==-999)
+######Extracted Pixels Sentinel_3 OLCI L2 using the function#####
+PRCRMP_Flags <- process_pixEx("pixEx_PRCRMP_OL_2_WFR_measurements.csv")
+Virtual_Flags <- process_pixEx("pixEx_Virtual_OL_2_WFR_measurements.csv")
 
 
-#####Merge Insitu and Sat Dataframes######
-
-PRCRMP_Merged<- merge(InSituData, PRCRMP_Flags, by = c('Site', 'Date'), all.x=TRUE) %>%
-  replace_with_na_all(condition=~.x==-999) %>%
-  filter(Quarter>1)
-
-Virtual_Merged<- merge(InSituData_Virtual, Virtual_Flags, by = c('Site', 'Date'), all.x=TRUE) %>%
-  replace_with_na_all(condition=~.x==-999) %>%
-  filter(Quarter>1)
-
+##### Merge InSitu and Satellite Dataframes ######
+PRCRMP_Merged = merge(InSituData, PRCRMP_Flags, by = c('Site', 'Date'), all.x = TRUE) %>%
+  replace_with_na_all(condition = ~.x == -999)
+Virtual_Merged = merge(InSituData_Virtual, Virtual_Flags, by = c('Site', 'Date'), all.x = TRUE) %>%
+  replace_with_na_all(condition = ~.x == -999)
 
 
 ####Figure 1: Map of Puerto Rico####
-
 options(tigris_class = "sf")
 PRmap=counties(state = "PR", cb = TRUE)
 
@@ -144,9 +140,6 @@ PRCRMP_map=
         panel.background = element_blank(),
         panel.spacing = unit(0, "lines"))
 PRCRMP_map
-
-ggsave('Figure_1.tiff', PRCRMP_map, width = 16, height = 6, dpi = 300)
-
 
 PRCRMP_Desecheomap=
   ggplot()+
@@ -249,6 +242,7 @@ PRCRMP_SWmap=
         panel.spacing = unit(0, "lines"))
 PRCRMP_SWmap
 
+ggsave('Figure_1.jpg', PRCRMP_map, width = 16, height = 6, dpi = 300)
 
 ####Figure 2: PRCRMP/Virtual Sites vs Sat Chla + Bland Altman Data Agreement & corresponding Stats ####
 
@@ -632,7 +626,7 @@ print(Figure3)
 ggsave("Figure_3.jpg", Figure3, width = 10, height = 5, dpi = 300)
 
 
-####Figure 4: EXTENDED PERIOD ANALYSIS####
+####Figure 4: Monthly Analysis for years 2022-2023####
 Virtual_Monthly_Flags=read_csv("pixEx_Monthly_22-23_Virtual_OL_2_WFR_measurements.csv", 
                                col_types = cols(`Date` = col_date(format = "%m/%d/%Y"))) %>% 
   mutate(ALL_FLAGS = rowSums((.[,Flags_NN]), na.rm = TRUE)) %>% 
@@ -727,7 +721,7 @@ print(Figure_4)
 ggsave("Figure_4.jpg", Figure_4, width = 10, height =10, dpi = 300)
 
 
-####DISTANCE between PRCRMP and Virtual stations#### 
+####Approximate distance between PRCRMP and Virtual stations#### 
 
 data <- read.csv("PRCRMP_Virtual_Coords2.csv", colClasses = c("character", "numeric", "numeric", "numeric", "numeric"))
 if (nrow(data)>0){

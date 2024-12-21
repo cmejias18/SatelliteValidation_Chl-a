@@ -32,7 +32,7 @@ process_pixEx <- function(file_path) {
   
   # Reads and process the Extracted Pixel file
   processed_data <- read_csv(file_path, col_types = cols(`Date` = col_date(format = "%m/%d/%Y"))) %>% 
-    mutate(ALL_FLAGS = rowSums((.[, Flags_NN]), na.rm = TRUE)) %>% 
+    mutate(ALL_FLAGS = rowSums(select(.,all_of(Flags_NN)), na.rm = TRUE)) %>% 
     filter(ALL_FLAGS < 1) %>% 
     rename(Site = "Name",
            Kd490 = "KD490_M07") %>% 
@@ -432,7 +432,6 @@ summary(PRCRMP_aov)
 PRCRMP_tukey
 
 
-
 #Virtual Sites
 Virtual1 <- Virtual_Merged$Chla
 Virtual2 <- Virtual_Merged$CHL_NN
@@ -627,17 +626,7 @@ ggsave("Figure_3.jpg", Figure3, width = 10, height = 5, dpi = 300)
 
 
 ####Figure 4: Monthly Analysis for years 2022-2023####
-Virtual_Monthly_Flags=read_csv("pixEx_Monthly_22-23_Virtual_OL_2_WFR_measurements.csv", 
-                               col_types = cols(`Date` = col_date(format = "%m/%d/%Y"))) %>% 
-  mutate(ALL_FLAGS = rowSums((.[,Flags_NN]), na.rm = TRUE)) %>% 
-  filter(ALL_FLAGS<1) %>% 
-  rename(Site = "Name",
-         Kd490 = "KD490_M07") %>% 
-  group_by(Date, Site) %>% 
-  subset(select= c(Site, Latitude, Longitude, Date, CHL_NN, CHL_NN_err, Kd490, ALL_FLAGS)) %>% 
-  dplyr::mutate(
-    "Optical_Depth" = 1/Kd490) %>%
-  replace_with_na_all(condition=~.x==-999)
+Virtual_Monthly_Flags <- process_pixEx("pixEx_Monthly_22-23_Virtual_OL_2_WFR_measurements.csv")
 
 
 Virtual_Monthly_Merged<- merge(InSituData_Virtual, Virtual_Monthly_Flags, by = c('Site', 'Date'), all.x=TRUE) %>%

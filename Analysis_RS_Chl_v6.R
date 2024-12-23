@@ -1,6 +1,5 @@
-#Introduction#
-#ADD MORE DETAILS HERE....
-#This R Code is for the analysis of the data published in "____________________________". 
+#This R Code is for the analysis of the data published in "Accuracy of remote sensing of chlorophyll-a in coral reef waters relative to in situ data and assessment of eutrophication threshold concentrations in Puerto Rico". This project aims to provide a map for using in situ Chl-a data to validate shallow coral reef virtual stations around Puerto Rico for management and restoration purposes. Lines 8-45 of this code define the function that allows for the processing of extracted pixels from Sentinel 3 OLCI ocean color products (Chlorophyll-a), as described in the publication and following the process flow diagram (Figure S.1.) therein. 
+
 # Carla L. Mejias-Rivera & Travis A. Courtney
 # carla.mejias@upr.edu
 
@@ -70,6 +69,7 @@ library(ggpmisc)
 library(ggbeeswarm)
 library(patchwork)
 library(ggforce)
+library(ggspatial)
 
 
 ####Import & Modify Raw Data #### 
@@ -119,11 +119,12 @@ site_code_map=as.data.frame(cbind(Longitude=InSituData$Longitude,Latitude=InSitu
 PRCRMP_map=
   ggplot()+
   geom_sf(data=PRmap, aes(geometry = geometry), fill = '#A9A9A9')+
-  geom_point(InSituData, mapping=aes(x= Longitude, y = Latitude), 
-             size= 4,alpha=0.9, shape = 21, fill = "coral2")+
-  coord_sf(xlim = c(-67.5, -65.16), ylim = c(17.87, 18.55), expand = FALSE) +
-  # scale_y_continuous(limits = c(17.7,18.6), expand = c(0, 0)) +
-  # scale_x_continuous(limits = c(-67.6,-65), expand = c(0, 0)) +
+  geom_point(InSituData, mapping=aes(x= Longitude, y = Latitude), size= 3,alpha=0.9, shape = 21, fill = "coral2")+
+  geom_rect(aes(xmin = -67.4898, xmax = -67.4728, ymin = 18.3915, ymax = 18.3758), colour = "black", fill="transparent", linewidth = 0.5)+ #Desecheo
+  geom_rect(aes(xmin = -67.0805, xmax = -66.7200, ymin = 17.8580, ymax = 18.0200), colour = "black", fill="transparent", linewidth = 0.5)+ #SW
+  geom_rect(aes(xmin = -67.2990, xmax = -67.1400, ymin = 18.3858, ymax = 18.1288), colour = "black", fill="transparent", linewidth = 0.5)+ #W
+  scale_y_continuous(limits = c(17.75,18.65), expand = c(0, 0)) +
+  scale_x_continuous(limits = c(-67.55,-65.16), expand = c(0, 0))+
   xlab("")+
   ylab("")+
   theme_tufte()+
@@ -138,17 +139,16 @@ PRCRMP_map=
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.background = element_blank(),
-        panel.spacing = unit(0, "lines"))
+        panel.spacing = unit(0, "lines"))+
+  annotation_north_arrow(location="tr", style = north_arrow_minimal(line_width =2, line_col = "black", text_col = "black", text_size = 18))
 PRCRMP_map
 
 PRCRMP_Desecheomap=
   ggplot()+
   geom_sf(data=PRmap, aes(geometry = geometry), fill = '#A9A9A9')+
   geom_point(InSituData, mapping=aes(x= Longitude, y = Latitude), 
-             size=6,alpha=0.9, shape = 21, fill = "coral2")+
-  coord_sf(xlim = c(-67.4922, -67.4704), ylim = c(18.3923, 18.3750), expand = FALSE) +
-  # scale_y_continuous(limits = c(17.7,18.6), expand = c(0, 0)) +
-  # scale_x_continuous(limits = c(-67.6,-65), expand = c(0, 0)) +
+             size=4, alpha=0.9, shape = 21, fill = "coral2")+
+  coord_sf(xlim = c(-67.4898, -67.4728), ylim = c(18.3915, 18.3758), expand = FALSE) +
   xlab("")+
   ylab("")+
   theme_tufte()+
@@ -157,23 +157,21 @@ PRCRMP_Desecheomap=
         axis.text.x = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks = element_blank(),
-        rect = element_blank(),
         legend.box = "vertical",
         strip.background = element_blank(),
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.background = element_blank(),
-        panel.spacing = unit(0, "lines"))
+        panel.spacing = unit(0, "lines"), 
+        panel.border = element_rect(color = "black", fill = NA, size = 1))
 PRCRMP_Desecheomap
 
 PRCRMP_Wmap=
   ggplot()+
   geom_sf(data=PRmap, aes(geometry = geometry), fill = '#A9A9A9')+
   geom_point(InSituData, mapping=aes(x= Longitude, y = Latitude), 
-             size=6,alpha=0.9, shape = 21, fill = "coral2")+
-  coord_sf(xlim = c(-67.2948, -67.1154), ylim = c(18.3858, 18.1288), expand = FALSE) +
-  # scale_y_continuous(limits = c(17.7,18.6), expand = c(0, 0)) +
-  # scale_x_continuous(limits = c(-67.6,-65), expand = c(0, 0)) +
+             size=4,alpha=0.9, shape = 21, fill = "coral2")+
+  coord_sf(xlim = c(-67.2990, -67.1400), ylim = c(18.3858, 18.1288), expand = TRUE) +
   xlab("")+
   ylab("")+
   theme_tufte()+
@@ -188,43 +186,16 @@ PRCRMP_Wmap=
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.background = element_blank(),
-        panel.spacing = unit(0, "lines"))
+        panel.spacing = unit(0, "lines"),
+        panel.border = element_rect(color = "black", fill = NA, size = 1))
 PRCRMP_Wmap
-
-
-PRCRMP_NWmap=
-  ggplot()+
-  geom_sf(data=PRmap, aes(geometry = geometry), fill = '#A9A9A9')+
-  geom_point(InSituData, mapping=aes(x= Longitude, y = Latitude), 
-             size= 6,alpha=0.9, shape = 21, fill = "coral2")+
-  coord_sf(xlim = c(-67.2948, -66.8962), ylim = c(18.4238, 18.0918), expand = FALSE) +
-  # scale_y_continuous(limits = c(17.7,18.6), expand = c(0, 0)) +
-  # scale_x_continuous(limits = c(-67.6,-65), expand = c(0, 0)) +
-  xlab("")+
-  ylab("")+
-  theme_tufte()+
-  theme(text = element_text(size=14,family="sans"),
-        legend.title=element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks = element_blank(),
-        rect = element_blank(),
-        legend.box = "vertical",
-        strip.background = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.background = element_blank(),
-        panel.spacing = unit(0, "lines"))
-PRCRMP_NWmap
 
 PRCRMP_SWmap=
   ggplot()+
   geom_sf(data=PRmap, aes(geometry = geometry), fill = '#A9A9A9')+
   geom_point(InSituData, mapping=aes(x= Longitude, y = Latitude), 
-             size= 6,alpha=0.9, shape = 21, fill = "coral2")+
-  coord_sf(xlim = c(-67.0983, -66.7074), ylim = c(17.8563, 18.0452), expand = FALSE) +
-  # scale_y_continuous(limits = c(17.7,18.6), expand = c(0, 0)) +
-  # scale_x_continuous(limits = c(-67.6,-65), expand = c(0, 0)) +
+             size= 4 ,alpha=0.9, shape = 21, fill = "coral2")+
+  coord_sf(xlim = c(-67.0805, -66.7200), ylim = c(17.8580, 18.0200), expand = FALSE) +
   xlab("")+
   ylab("")+
   theme_tufte()+
@@ -239,10 +210,15 @@ PRCRMP_SWmap=
         panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_blank(),
         panel.background = element_blank(),
-        panel.spacing = unit(0, "lines"))
+        panel.spacing = unit(0, "lines"), 
+        panel.border = element_rect(color = "black", fill = NA, size = 1))
 PRCRMP_SWmap
 
-ggsave('Figure_1.jpg', PRCRMP_map, width = 16, height = 6, dpi = 300)
+ggsave('Figure_1.jpg', PRCRMP_map, width = 10, height = 6, dpi = 300)
+ggsave('Figure_1_Desecheo.jpg', PRCRMP_Desecheomap, width = 10, height = 6, dpi = 300)
+ggsave('Figure_1_SW.jpg', PRCRMP_SWmap, width = 10, height = 6, dpi = 300)
+ggsave('Figure_1_W.jpg', PRCRMP_Wmap, width = 10, height = 6, dpi = 300)
+
 
 ####Figure 2: PRCRMP/Virtual Sites vs Sat Chla + Bland Altman Data Agreement & corresponding Stats ####
 
@@ -565,7 +541,6 @@ TukeyHSD(Virtual_factorial_aov)
 
 
 #Plot interaction
-# interaction.plot(combined_data$Depth, combined_data$Group, combined_data$CHL_NN)
 
 ## Plot for InSituData
 p1 <- ggplot(

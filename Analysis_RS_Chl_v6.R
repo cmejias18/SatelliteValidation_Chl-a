@@ -306,31 +306,6 @@ Figure_2A<-PRCRMP_Chl + Virtual_Chl +
 Figure_2A
 
 
-
-#ANOVA + Tukey HSD
-
-#PRCRMP 
-# PRCRMP_long <- data.frame(value = c(PRCRMP_Merged$Chla, PRCRMP_Merged$CHL_NN),
-#                           group = rep(c("Chla", "CHL_NN"), each = nrow(PRCRMP_Merged)))
-# 
-# PRCRMP_aov <- aov(value ~ group, data = PRCRMP_long)
-# PRCRMP_tukey <- TukeyHSD(PRCRMP_aov)
-# 
-# summary(PRCRMP_aov)
-# PRCRMP_tukey
-
-
-#Virtual
-# Virtual_long <- data.frame(value = c(Virtual_Merged$Chla, Virtual_Merged$CHL_NN),
-#                            group = rep(c("Chla", "CHL_NN"), each = nrow(Virtual_Merged)))
-# 
-# Virtual_aov <- aov(value ~ group, data = Virtual_long)
-# Virtual_tukey <- TukeyHSD(Virtual_aov)
-# 
-# summary(Virtual_aov)
-# Virtual_tukey
-
-
 #Bland-Altman Plots
 #PRCRMP
 PRCRMP1 <- PRCRMP_Merged$Chla
@@ -389,22 +364,9 @@ print(PRCRMP_mean_diff)
 print(PRCRMP_loa_upper)
 print(PRCRMP_loa_lower)
 
-# Create grouping variable based on ranges of PRCRMP_averages
-PRCRMP_data <- PRCRMP_data %>%
-  mutate(group = cut(PRCRMP_averages, 
-                     breaks = seq(0, 2.5, by = 0.5), 
-                     labels = paste0("Group", 1:5), 
-                     include.lowest = TRUE))
-
-# Run ANOVA
-PRCRMP_aov <- aov(PRCRMP_differences ~ group, data = PRCRMP_data)
-
-# Run Tukey post hoc test
-PRCRMP_tukey <- TukeyHSD(PRCRMP_aov)
-
-# Print results
-summary(PRCRMP_aov)
-PRCRMP_tukey
+#To obtain the Bland-Altman p-Value
+PRCRMP_t_test <- t.test(PRCRMP_differences, mu = 0)
+print(PRCRMP_t_test)
 
 
 #Virtual Sites
@@ -465,22 +427,9 @@ print(Virtual_mean_diff)
 print(Virtual_loa_upper)
 print(Virtual_loa_lower)
 
-# Create grouping variable based on ranges of PRCRMP_averages
-Virtual_data <- Virtual_data %>%
-  mutate(group = cut(Virtual_averages, 
-                     breaks = seq(0, 2.5, by = 0.5), 
-                     labels = paste0("Group", 1:5), 
-                     include.lowest = TRUE))
-
-# Run ANOVA
-Virtual_aov <- aov(Virtual_differences ~ group, data = Virtual_data)
-
-# Run Tukey post hoc test
-Virtual_tukey <- TukeyHSD(Virtual_aov)
-
-# Print results
-summary(Virtual_aov)
-Virtual_tukey
+#To obtain the Bland-Altman p-Value
+Virtual_t_test <- t.test(Virtual_differences, mu = 0)
+print(Virtual_t_test)
 
 
 Figure_2B<-PRCRMP_BA + Virtual_BA+
